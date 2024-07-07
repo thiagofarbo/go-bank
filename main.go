@@ -1,11 +1,11 @@
 package main
 
 import (
-	"awesomeProject/account"
-	"awesomeProject/db"
-	"awesomeProject/user"
-	"awesomeProject/util"
 	"fmt"
+	"go-bank/account"
+	"go-bank/db"
+	"go-bank/user"
+	"go-bank/util"
 	"os"
 	"strconv"
 )

@@ -3,9 +3,9 @@
 package account
 
 import (
-	"awesomeProject/user"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"go-bank/user"
 	"time"
 )
 

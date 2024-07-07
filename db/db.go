@@ -1,10 +1,10 @@
 package db
 
 import (
-	"awesomeProject/account"
-	"awesomeProject/user"
 	"fmt"
 	"github.com/joho/godotenv"
+	"go-bank/account"
+	"go-bank/user"
 	"log"
 	"os"
 

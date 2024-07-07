@@ -1,4 +1,4 @@
-module awesomeProject
+module go-bank
 
 go 1.22
 
