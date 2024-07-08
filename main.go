@@ -60,5 +60,7 @@ func main() {
 		if statusAccount.ID != 0 {
 			fmt.Printf("Account updated successfully : %v\n", statusAccount)
 		}
+	} else if action == "statement" {
+		account.BankStatement(db.GetDB(), "2024-07-01 00:00:00", "2024-07-08 23:59:59")
 	}
 }

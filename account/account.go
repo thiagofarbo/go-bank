@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"go-bank/user"
+	"go-bank/util"
 	"log"
 	"time"
 )
@@ -22,12 +23,13 @@ type Account struct {
 }
 
 type Transaction struct {
-	ID              uint    `gorm:"primaryKey;autoIncrement"`
-	AccountID       uint    `gorm:"not null"`
-	Amount          float64 `gorm:"type:numeric(10,2);not null;default:0.00"`
-	TransactionType string  `gorm:"size:20;not null"`
-	Description     string  `gorm:"size:20;not null"`
-	Account         Account `gorm:"foreignkey:AccountID"`
+	ID              uint      `gorm:"primaryKey;autoIncrement"`
+	AccountID       uint      `gorm:"not null"`
+	Amount          float64   `gorm:"type:numeric(10,2);not null;default:0.00"`
+	TransactionType string    `gorm:"size:20;not null"`
+	Description     string    `gorm:"size:20;not null"`
+	Account         Account   `gorm:"foreignkey:AccountID"`
+	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 func CreateAccount(db *gorm.DB, account Account, user user.User) (Account, error) {
@@ -139,26 +141,31 @@ func CreateTransaction(db *gorm.DB, amount float64, transactionType string, acco
 
 	tx := db.Begin()
 	if tx.Error != nil {
-		log.Fatalf("Erro ao iniciar a transação: %v", tx.Error)
+		log.Fatalf("Error to start transaction: %v", tx.Error)
 	}
 
 	if err := tx.Save(&newTransaction).Error; err != nil {
 		tx.Rollback()
-		log.Fatalf("Erro ao criar a transação: %v", err)
+		log.Fatalf("Error to create transaction: %v", err)
 		return Transaction{}, nil
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		log.Fatalf("Erro ao commitar a transação: %v", err)
+		log.Fatalf("Error to commit  transaction: %v", err)
 	}
 	return newTransaction, nil
 }
 
-//func GetUserById(db *gorm.DB, id uint) (User, error) {
-//	var user User
-//	result := db.First(&user, id)
-//	if result.Error != nil {
-//		return User{}, nil
-//	}
-//	return user, nil
-//}
+func BankStatement(db *gorm.DB, start string, end string) (*[]Transaction, error) {
+	var transactions []Transaction
+
+	startDate, _ := util.ToDate(start)
+	endDate, _ := util.ToDate(end)
+
+	if err := db.Where("created_at BETWEEN ? AND ?", startDate, endDate).Find(&transactions).Error; err != nil {
+		log.Fatalf("Erro ao consultar transações: %v", err)
+	}
+	fmt.Printf("Transactions found: %+v\n", transactions)
+
+	return &transactions, nil
+}
