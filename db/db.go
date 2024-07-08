@@ -8,6 +8,8 @@ import (
 	_ "github.com/lib/pq"
 	"go-bank/account"
 	"go-bank/client"
+	"go-bank/grossIncome"
+	"go-bank/loan"
 	"go-bank/user"
 	"log"
 	"os"
@@ -57,6 +59,12 @@ func DBMigrate() {
 	}
 	if err := db.AutoMigrate(&account.Transaction{}).Error; err != nil {
 		log.Fatalf("Fail to migrate transaction table: %v", err)
+	}
+	if err := db.AutoMigrate(&loan.Loan{}).Error; err != nil {
+		log.Fatalf("Fail to migrate Loan table: %v", err)
+	}
+	if err := db.AutoMigrate(&grossIncome.GrossIncome{}).Error; err != nil {
+		log.Fatalf("Fail to migrate Income table: %v", err)
 	}
 	fmt.Println("Database migration completed successfully!")
 }

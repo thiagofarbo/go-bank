@@ -5,6 +5,7 @@ import (
 	"go-bank/account"
 	"go-bank/client"
 	"go-bank/db"
+	"go-bank/grossIncome"
 	"go-bank/helper"
 	"go-bank/user"
 	"os"
@@ -49,11 +50,15 @@ func main() {
 		branch := helper.GenerateAccountBranch()
 		newAccount := account.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: Active}
 
-		if _, err := account.CreateAccount(db.GetDB(), newAccount, newUser); err != nil {
+		createAccount, err := account.CreateAccount(db.GetDB(), newAccount, newUser)
+		if err != nil {
 			fmt.Printf("Error to create an account: %v\n", err)
 			return
 		}
 		fmt.Println("Account has been created successfully for user: " + newUser.Name)
+
+		income := grossIncome.GrossIncome{AccountID: createAccount.ID, Account: createAccount, Amount: 25000}
+		grossIncome.Create(db.GetDB(), income)
 
 	} else if action == "deposit" {
 
