@@ -35,8 +35,16 @@ func Connect() {
 	if err != nil {
 		log.Fatalf("Erro ao conectar com o banco de dados: %v", err)
 	}
-	fmt.Println("Conexão com o banco de dados estabelecida com sucesso!")
+	fmt.Println("Database connection established successfully!")
 
+	DBMigrate()
+}
+
+func GetDB() *gorm.DB {
+	return db
+}
+
+func DBMigrate() {
 	// Migrate schemas
 	if err := db.AutoMigrate(&user.User{}).Error; err != nil {
 		log.Fatalf("Fail to migrate user table: %v", err)
@@ -50,10 +58,5 @@ func Connect() {
 	if err := db.AutoMigrate(&account.Transaction{}).Error; err != nil {
 		log.Fatalf("Fail to migrate transaction table: %v", err)
 	}
-
-	fmt.Println("Migração de banco de dados concluída com sucesso!")
-}
-
-func GetDB() *gorm.DB {
-	return db
+	fmt.Println("Database migration completed successfully!")
 }

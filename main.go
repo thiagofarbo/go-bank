@@ -26,6 +26,10 @@ func main() {
 	action := os.Args[1]
 	fmt.Println("Action:", action)
 
+	if action == "transfer" {
+		account.Transfer(db.GetDB(), 10, account.Account{Branch: "5255", Number: "554601"}, account.Account{Branch: "2236", Number: "568387"})
+	}
+
 	if action == "create-user" {
 		userId := helper.GenerateId()
 		newUser := user.User{Username: strconv.Itoa(int(userId)) + "username", Password: "1234", Email: "user-" + strconv.Itoa(int(userId)) + "@gmail.com"}
@@ -53,7 +57,7 @@ func main() {
 
 	} else if action == "deposit" {
 
-		deposit, _ := account.Deposit(db.GetDB(), "5255", "554601", 10.00)
+		deposit, _ := account.Deposit(db.GetDB(), "2236", "568387", 100.00)
 		fmt.Println("Deposit made successfully for account: " + deposit.Number)
 
 	} else if action == "withdraw" {

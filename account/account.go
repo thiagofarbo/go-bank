@@ -129,14 +129,14 @@ func UpdateStatusAccount(db *gorm.DB, branch string, accountNumber string, statu
 	return &account, nil
 }
 
-func CreateTransaction(db *gorm.DB, amount float64, transactionType string, account2 Account) (Transaction, error) {
+func CreateTransaction(db *gorm.DB, amount float64, transactionType string, account Account) (Transaction, error) {
 
 	newTransaction := Transaction{
-		AccountID:       account2.ID,
+		AccountID:       account.ID,
 		Amount:          amount,
 		TransactionType: transactionType,
 		Description:     "transaction",
-		Account:         account2,
+		Account:         account,
 	}
 
 	tx := db.Begin()
@@ -163,9 +163,52 @@ func BankStatement(db *gorm.DB, start string, end string) (*[]Transaction, error
 	endDate, _ := helper.ToDate(end)
 
 	if err := db.Where("created_at BETWEEN ? AND ?", startDate, endDate).Find(&transactions).Error; err != nil {
-		log.Fatalf("Erro ao consultar transações: %v", err)
+		log.Fatalf("Error to search transaction: %v", err)
 	}
 	fmt.Printf("Transactions found: %+v\n", transactions)
 
 	return &transactions, nil
+}
+
+func Transfer(db *gorm.DB, amount float64, accountFrom Account, accountTo Account) {
+
+	if err := db.Where("branch = ? AND number = ?", accountFrom.Branch, accountFrom.Number).Find(&accountFrom).Error; err != nil {
+		log.Fatalf("Error to search transaction: %v", err)
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Fatalf("Error to start transaction: %v", tx.Error)
+	}
+
+	accountFrom.Balance -= amount
+	if err := tx.Save(&accountFrom).Error; err != nil {
+		tx.Rollback()
+		log.Fatalf("Error to create transaction: %v", err)
+	}
+
+	if err := db.Where("branch = ? AND number = ?", accountTo.Branch, accountTo.Number).Find(&accountTo).Error; err != nil {
+		log.Fatalf("Error to search transaction: %v", err)
+	}
+
+	accountTo.Balance += amount
+
+	if err := tx.Save(&accountTo).Error; err != nil {
+		tx.Rollback()
+		log.Fatalf("Error to create transaction: %v", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Fatalf("Error to commit  transaction: %v", err)
+	}
+
+	_, err := CreateTransaction(db, amount, "transfer", accountTo)
+	if err != nil {
+		return
+	}
+
+	_, err = CreateTransaction(db, amount, "received", accountFrom)
+	if err != nil {
+		return
+	}
 }
