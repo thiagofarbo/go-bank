@@ -46,6 +46,9 @@ func Connect() {
 	if err := db.AutoMigrate(&user.User{}).Error; err != nil {
 		log.Fatalf("Falha ao migrar banco de dados: %v", err)
 	}
+	if err := db.AutoMigrate(&account.Transaction{}).Error; err != nil {
+		log.Fatalf("Falha ao migrar tabela transaction: %v", err)
+	}
 
 	fmt.Println("Migração de banco de dados concluída com sucesso!")
 }

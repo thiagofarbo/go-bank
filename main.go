@@ -45,11 +45,11 @@ func main() {
 
 	} else if action == "deposit" {
 
-		deposit, _ := account.Deposit(db.GetDB(), "6662", "260456", 10.00)
+		deposit, _ := account.Deposit(db.GetDB(), "5119", "274575", 10.00)
 		fmt.Println("Deposit made successfully for account: " + deposit.Number)
 
 	} else if action == "withdraw" {
-		withdraw, _ := account.Withdraw(db.GetDB(), "6662", "260456", 5.00)
+		withdraw, _ := account.Withdraw(db.GetDB(), "5119", "274575", 5.00)
 		if withdraw.ID == 0 {
 			fmt.Println("Error to withdraw balance" + withdraw.Number)
 		} else {

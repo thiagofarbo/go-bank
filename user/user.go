@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"github.com/jinzhu/gorm"
 	"time"
 )
@@ -19,11 +18,8 @@ func CreateUser(db *gorm.DB, user User) (User, error) {
 
 	newUser := User{Name: user.Name, Age: user.Age, Email: user.Email}
 
-	result := db.Create(&newUser)
-	if result.Error != nil {
-		fmt.Printf("Erro ao criar usuario: %v\n")
-		return User{}, nil
-	}
+	newUser, _ = Create(db, user)
+
 	return newUser, nil
 }
 

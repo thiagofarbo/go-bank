@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"go-bank/user"
+	"log"
 	"time"
 )
 
@@ -20,6 +21,15 @@ type Account struct {
 	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
+type Transaction struct {
+	ID              uint    `gorm:"primaryKey;autoIncrement"`
+	AccountID       uint    `gorm:"not null"`
+	Amount          float64 `gorm:"type:numeric(10,2);not null;default:0.00"`
+	TransactionType string  `gorm:"size:20;not null"`
+	Description     string  `gorm:"size:20;not null"`
+	Account         Account `gorm:"foreignkey:AccountID"`
+}
+
 func CreateAccount(db *gorm.DB, account Account, user user.User) (Account, error) {
 	account.UserID = user.ID
 	result := db.Create(&account)
@@ -31,6 +41,7 @@ func CreateAccount(db *gorm.DB, account Account, user user.User) (Account, error
 
 func Deposit(db *gorm.DB, branch string, accountNumber string, amount float64) (*Account, error) {
 	var account Account
+
 	valid, err := IsValid(db, branch, accountNumber)
 	if valid == false {
 		return nil, err
@@ -43,6 +54,11 @@ func Deposit(db *gorm.DB, branch string, accountNumber string, amount float64) (
 	}
 	account.Balance += amount
 	db.Save(&account)
+
+	_, err = CreateTransaction(db, amount, "Deposit", account)
+	if err != nil {
+		return nil, err
+	}
 	return &account, nil
 }
 
@@ -63,6 +79,12 @@ func Withdraw(db *gorm.DB, branch string, accountNumber string, amount float64) 
 	}
 	account.Balance -= amount
 	db.Save(&account)
+
+	_, err = CreateTransaction(db, amount, "Withdraw", account)
+	if err != nil {
+		return nil, err
+	}
+
 	return &account, nil
 }
 
@@ -103,6 +125,33 @@ func UpdateStatusAccount(db *gorm.DB, branch string, accountNumber string, statu
 	account.Status = status
 	db.Save(&account)
 	return &account, nil
+}
+
+func CreateTransaction(db *gorm.DB, amount float64, transactionType string, account2 Account) (Transaction, error) {
+
+	newTransaction := Transaction{
+		AccountID:       account2.ID,
+		Amount:          amount,
+		TransactionType: transactionType,
+		Description:     "transaction",
+		Account:         account2,
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Fatalf("Erro ao iniciar a transação: %v", tx.Error)
+	}
+
+	if err := tx.Save(&newTransaction).Error; err != nil {
+		tx.Rollback()
+		log.Fatalf("Erro ao criar a transação: %v", err)
+		return Transaction{}, nil
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Fatalf("Erro ao commitar a transação: %v", err)
+	}
+	return newTransaction, nil
 }
 
 //func GetUserById(db *gorm.DB, id uint) (User, error) {
