@@ -2,13 +2,14 @@ package user
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-bank/helper"
 	"time"
 )
 
 type User struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement"`
-	Name      string    `gorm:"size:100;not null"`
-	Age       uint      `gorm:"not null"`
+	Username  string    `gorm:"size:64"`
+	Password  string    `gorm:"size:255"`
 	Email     string    `gorm:"size:100;not null;unique"`
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
@@ -16,9 +17,14 @@ type User struct {
 
 func CreateUser(db *gorm.DB, user User) (User, error) {
 
-	newUser := User{Name: user.Name, Age: user.Age, Email: user.Email}
+	hashPassword, err := helper.EncryptPassword(user.Password)
+	if err != nil {
+		return User{}, err
+	}
 
-	newUser, _ = Create(db, user)
+	newUser := User{Username: user.Username, Password: string(hashPassword), Email: user.Email}
+
+	newUser, _ = Create(db, newUser)
 
 	return newUser, nil
 }

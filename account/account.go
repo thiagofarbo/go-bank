@@ -5,8 +5,8 @@ package account
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
-	"go-bank/user"
-	"go-bank/util"
+	"go-bank/client"
+	"go-bank/helper"
 	"log"
 	"time"
 )
@@ -14,7 +14,7 @@ import (
 type Account struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement"`
 	Branch    string    `gorm:"size:20;not null;unique"`
-	UserID    uint      `gorm:"not null"`
+	ClientID  uint      `gorm:"not null"`
 	Number    string    `gorm:"size:20;not null;unique"`
 	Balance   float64   `gorm:"type:numeric(10,2);not null;default:0.00"`
 	Status    string    `gorm:"size:25;not null"`
@@ -32,8 +32,8 @@ type Transaction struct {
 	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
-func CreateAccount(db *gorm.DB, account Account, user user.User) (Account, error) {
-	account.UserID = user.ID
+func CreateAccount(db *gorm.DB, account Account, client client.Client) (Account, error) {
+	account.ClientID = client.ID
 	result := db.Create(&account)
 	if result.Error != nil {
 		return Account{}, nil
@@ -159,8 +159,8 @@ func CreateTransaction(db *gorm.DB, amount float64, transactionType string, acco
 func BankStatement(db *gorm.DB, start string, end string) (*[]Transaction, error) {
 	var transactions []Transaction
 
-	startDate, _ := util.ToDate(start)
-	endDate, _ := util.ToDate(end)
+	startDate, _ := helper.ToDate(start)
+	endDate, _ := helper.ToDate(end)
 
 	if err := db.Where("created_at BETWEEN ? AND ?", startDate, endDate).Find(&transactions).Error; err != nil {
 		log.Fatalf("Erro ao consultar transações: %v", err)

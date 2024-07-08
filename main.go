@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"go-bank/account"
+	"go-bank/client"
 	"go-bank/db"
+	"go-bank/helper"
 	"go-bank/user"
-	"go-bank/util"
 	"os"
 	"strconv"
 )
@@ -25,16 +26,23 @@ func main() {
 	action := os.Args[1]
 	fmt.Println("Action:", action)
 
-	if action == "create" {
-		userId := util.GenerateId()
-		newUser := user.User{Name: strconv.Itoa(int(userId)) + "username", Age: 36, Email: "user-" + strconv.Itoa(int(userId)) + "@gmail.com"}
+	if action == "create-user" {
+		userId := helper.GenerateId()
+		newUser := user.User{Username: strconv.Itoa(int(userId)) + "username", Password: "1234", Email: "user-" + strconv.Itoa(int(userId)) + "@gmail.com"}
 		newUser, _ = user.CreateUser(db.GetDB(), newUser)
+		fmt.Println("User " + newUser.Username + " has been created successfully!")
+	}
+
+	if action == "create-client" {
+		userId := helper.GenerateId()
+		newUser := client.Client{Name: strconv.Itoa(int(userId)) + "username", Age: 36, Email: "user-" + strconv.Itoa(int(userId)) + "@gmail.com"}
+		newUser, _ = client.CreateUser(db.GetDB(), newUser)
 		fmt.Println("User " + newUser.Name + " has been created successfully!")
 
-		accountNumber := util.GenerateAccountNumber()
+		accountNumber := helper.GenerateAccountNumber()
 
 		fmt.Println("Creating account for user: " + newUser.Name)
-		branch := util.GenerateAccountBranch()
+		branch := helper.GenerateAccountBranch()
 		newAccount := account.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: Active}
 
 		if _, err := account.CreateAccount(db.GetDB(), newAccount, newUser); err != nil {
@@ -45,11 +53,11 @@ func main() {
 
 	} else if action == "deposit" {
 
-		deposit, _ := account.Deposit(db.GetDB(), "5119", "274575", 10.00)
+		deposit, _ := account.Deposit(db.GetDB(), "5255", "554601", 10.00)
 		fmt.Println("Deposit made successfully for account: " + deposit.Number)
 
 	} else if action == "withdraw" {
-		withdraw, _ := account.Withdraw(db.GetDB(), "5119", "274575", 5.00)
+		withdraw, _ := account.Withdraw(db.GetDB(), "5255", "554601", 5.00)
 		if withdraw.ID == 0 {
 			fmt.Println("Error to withdraw balance" + withdraw.Number)
 		} else {
