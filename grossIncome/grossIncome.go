@@ -10,7 +10,7 @@ import (
 type GrossIncome struct {
 	ID        uint            `gorm:"primaryKey;autoIncrement"`
 	AccountID uint            `gorm:"not null"`
-	Account   account.Account `gorm:"foreignkey:AccountID;association_foreignkey:ID"`
+	Account   account.Account `gorm:"foreignKey:AccountID"`
 	Amount    float64         `gorm:"type:decimal(15,2);not null"`
 	CreatedAt time.Time       `gorm:"default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time       `gorm:"default:CURRENT_TIMESTAMP"`

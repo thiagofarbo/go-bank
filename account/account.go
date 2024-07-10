@@ -12,14 +12,15 @@ import (
 )
 
 type Account struct {
-	ID        uint      `gorm:"primaryKey;autoIncrement"`
-	Branch    string    `gorm:"size:20;not null;unique"`
-	ClientID  uint      `gorm:"not null"`
-	Number    string    `gorm:"size:20;not null;unique"`
-	Balance   float64   `gorm:"type:numeric(10,2);not null;default:0.00"`
-	Status    string    `gorm:"size:25;not null"`
-	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
+	ID        uint          `gorm:"primaryKey;autoIncrement"`
+	Branch    string        `gorm:"size:20;not null;unique"`
+	ClientID  uint          `gorm:"not null"`
+	Client    client.Client `gorm:"foreignKey:ClientID"`
+	Number    string        `gorm:"size:20;not null;unique"`
+	Balance   float64       `gorm:"type:numeric(10,2);not null;default:0.00"`
+	Status    string        `gorm:"size:25;not null"`
+	CreatedAt time.Time     `gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time     `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 type Transaction struct {
@@ -28,7 +29,7 @@ type Transaction struct {
 	Amount          float64   `gorm:"type:numeric(10,2);not null;default:0.00"`
 	TransactionType string    `gorm:"size:20;not null"`
 	Description     string    `gorm:"size:20;not null"`
-	Account         Account   `gorm:"foreignkey:AccountID"`
+	Account         Account   `gorm:"foreignKey:AccountID"`
 	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 

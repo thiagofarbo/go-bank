@@ -7,6 +7,7 @@ import (
 	"go-bank/db"
 	"go-bank/grossIncome"
 	"go-bank/helper"
+	"go-bank/loan"
 	"go-bank/user"
 	"os"
 	"strconv"
@@ -62,11 +63,11 @@ func main() {
 
 	} else if action == "deposit" {
 
-		deposit, _ := account.Deposit(db.GetDB(), "2236", "568387", 100.00)
+		deposit, _ := account.Deposit(db.GetDB(), "1928", "923265", 100.00)
 		fmt.Println("Deposit made successfully for account: " + deposit.Number)
 
 	} else if action == "withdraw" {
-		withdraw, _ := account.Withdraw(db.GetDB(), "5255", "554601", 5.00)
+		withdraw, _ := account.Withdraw(db.GetDB(), "1928", "923265", 5.00)
 		if withdraw.ID == 0 {
 			fmt.Println("Error to withdraw balance" + withdraw.Number)
 		} else {
@@ -79,5 +80,9 @@ func main() {
 		}
 	} else if action == "statement" {
 		account.BankStatement(db.GetDB(), "2024-07-01 00:00:00", "2024-07-08 23:59:59")
+	} else if action == "loan" {
+		term := 15
+		//(db *gorm.DB, accountId uint, amount float64, interestRate float64, term int)
+		loan.GenerateLoan(db.GetDB(), 2, 10.000, 1, term, "Got loan with a term of "+strconv.Itoa(term)+"%")
 	}
 }
