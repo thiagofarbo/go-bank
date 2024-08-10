@@ -34,15 +34,6 @@ type Transaction struct {
 	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
-//func CreateAccount(db *gorm.DB, account Account, client client.Client) (Account, error) {
-//	account.ClientID = client.ID
-//	result := db.Create(&account)
-//	if result.Error != nil {
-//		return Account{}, nil
-//	}
-//	return account, nil
-//}
-
 func CreateAccount(db *gorm.DB, account Account, clientId uint) (Account, error) {
 	account.ClientID = clientId
 	result := db.Create(&account)

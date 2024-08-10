@@ -17,6 +17,10 @@ import (
 	"strconv"
 )
 
+type RequestBody struct {
+	Accounts []account2.Account `json:"accounts"`
+}
+
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
@@ -201,10 +205,6 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&withdraw)
 
 	defer db.GetDB().Close()
-}
-
-type RequestBody struct {
-	Accounts []account2.Account `json:"accounts"`
 }
 
 func Transfer(w http.ResponseWriter, r *http.Request) {
