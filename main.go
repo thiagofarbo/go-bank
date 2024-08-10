@@ -12,17 +12,9 @@ import (
 	"go-bank/helper"
 	"go-bank/loan"
 	user2 "go-bank/user"
+	"log"
 	"net/http"
 	"strconv"
-)
-
-const (
-	Active    = "active"
-	Inactive  = "inactive"
-	Frozen    = "frozen"
-	Closed    = "closed"
-	Blocked   = "blocked"
-	Suspended = "suspended"
 )
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +85,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode("client not found!")
 		return
 	}
-	newAccount := account2.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: Active}
+	newAccount := account2.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: account2.Active}
 	newAccount, _ = account2.CreateAccount(db.GetDB(), newAccount, client.ID)
 
 	w.WriteHeader(http.StatusCreated)
@@ -167,6 +159,12 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	isActive, err := account2.IsAccountActive(db.GetDB(), account)
+	if !isActive {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Fatalf("Error: account is not active for deposit: %v", err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	deposit, _ := account2.Deposit(db.GetDB(), account.Branch, account.Number, account.Balance)
 	fmt.Println("Deposit made successfully for account: " + deposit.Number)
@@ -187,6 +185,14 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	isActive, err := account2.IsAccountActive(db.GetDB(), account)
+	if !isActive {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Fatalf("Error: account is not active for withdrawals: %v", err)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	withdraw, _ := account2.Withdraw(db.GetDB(), account.Branch, account.Number, account.Balance)
 	fmt.Println("Withdraw made successfully for account: " + withdraw.Number)
@@ -211,6 +217,15 @@ func Transfer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
+	}
+
+	for _, value := range reqBody.Accounts {
+		isActive, err := account2.IsAccountActive(db.GetDB(), value)
+		if !isActive {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Fatalf("Error: account is not active for transfers: %v", err)
+			return
+		}
 	}
 
 	if len(reqBody.Accounts) > 0 {
@@ -301,7 +316,15 @@ func UpdateStatusAccount(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	statusAccount, _ := account2.UpdateStatusAccount(db.GetDB(), account.Branch, account.Number, Closed)
+
+	isActive, err := account2.IsAccountActive(db.GetDB(), account)
+	if !isActive {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Fatalf("Error: account is not active for updates: %v", err)
+		return
+	}
+
+	statusAccount, _ := account2.UpdateStatusAccount(db.GetDB(), account.Branch, account.Number, account2.Closed)
 	if statusAccount.ID != 0 {
 		fmt.Printf("Account updated successfully : %v\n", statusAccount)
 	}

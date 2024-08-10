@@ -3,6 +3,7 @@
 package account
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"go-bank/client"
@@ -235,4 +236,15 @@ func Transfer(db *gorm.DB, amount float64, accountFrom Account, accountTo Accoun
 	if err != nil {
 		return
 	}
+}
+
+func IsAccountActive(db *gorm.DB, account Account) (bool, error) {
+
+	if err := db.Where("branch = ? AND number = ?", account.Branch, account.Number).Find(&account).Error; err != nil {
+		log.Fatalf("Error to search account: %v", err)
+	}
+	if account.Status != Active {
+		return false, errors.New(account.Number)
+	}
+	return true, nil
 }
