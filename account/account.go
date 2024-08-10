@@ -33,8 +33,17 @@ type Transaction struct {
 	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
-func CreateAccount(db *gorm.DB, account Account, client client.Client) (Account, error) {
-	account.ClientID = client.ID
+//func CreateAccount(db *gorm.DB, account Account, client client.Client) (Account, error) {
+//	account.ClientID = client.ID
+//	result := db.Create(&account)
+//	if result.Error != nil {
+//		return Account{}, nil
+//	}
+//	return account, nil
+//}
+
+func CreateAccount(db *gorm.DB, account Account, clientId uint) (Account, error) {
+	account.ClientID = clientId
 	result := db.Create(&account)
 	if result.Error != nil {
 		return Account{}, nil
@@ -78,6 +87,7 @@ func Withdraw(db *gorm.DB, branch string, accountNumber string, amount float64) 
 	}
 	isAble, _ := IsAbleToWithdraw(account.Balance, amount)
 	if isAble == false {
+		fmt.Printf("Unable to process withdraw: insufficient funds : %v\n", amount)
 		return &Account{}, nil
 	}
 	account.Balance -= amount
@@ -92,11 +102,18 @@ func Withdraw(db *gorm.DB, branch string, accountNumber string, amount float64) 
 }
 
 func IsAbleToWithdraw(balance float64, withdrawAmount float64) (bool, error) {
-	if balance < withdrawAmount {
+	if balance <= withdrawAmount {
 		fmt.Printf("Unable to process withdrawal: insufficient funds : %v\n", balance)
 		return false, nil
 	}
 	return true, nil
+}
+
+func IsAbleToTransfer(transferAmount float64, balanceAccount float64) (bool, error) {
+	if transferAmount <= balanceAccount {
+		return true, nil
+	}
+	return false, nil
 }
 
 func IsValid(db *gorm.DB, branch string, accountNumber string) (bool, error) {
@@ -157,13 +174,13 @@ func CreateTransaction(db *gorm.DB, amount float64, transactionType string, acco
 	return newTransaction, nil
 }
 
-func BankStatement(db *gorm.DB, start string, end string) (*[]Transaction, error) {
+func BankStatement(db *gorm.DB, accountId uint, start string, end string) (*[]Transaction, error) {
 	var transactions []Transaction
 
 	startDate, _ := helper.ToDate(start)
 	endDate, _ := helper.ToDate(end)
 
-	if err := db.Where("created_at BETWEEN ? AND ?", startDate, endDate).Find(&transactions).Error; err != nil {
+	if err := db.Where("account_id = ? and created_at BETWEEN ? AND ?", accountId, startDate, endDate).Find(&transactions).Error; err != nil {
 		log.Fatalf("Error to search transaction: %v", err)
 	}
 	fmt.Printf("Transactions found: %+v\n", transactions)
@@ -175,6 +192,12 @@ func Transfer(db *gorm.DB, amount float64, accountFrom Account, accountTo Accoun
 
 	if err := db.Where("branch = ? AND number = ?", accountFrom.Branch, accountFrom.Number).Find(&accountFrom).Error; err != nil {
 		log.Fatalf("Error to search transaction: %v", err)
+	}
+
+	isAble, err := IsAbleToTransfer(amount, accountFrom.Balance)
+	if !isAble {
+		fmt.Printf("Unable to process transfer: insufficient funds : %v\n", amount)
+		return
 	}
 
 	tx := db.Begin()
@@ -203,7 +226,7 @@ func Transfer(db *gorm.DB, amount float64, accountFrom Account, accountTo Accoun
 		log.Fatalf("Error to commit  transaction: %v", err)
 	}
 
-	_, err := CreateTransaction(db, amount, "transfer", accountTo)
+	_, err = CreateTransaction(db, amount, "transfer", accountTo)
 	if err != nil {
 		return
 	}

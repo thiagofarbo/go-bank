@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"go-bank/account"
 	"go-bank/grossIncome"
+	"go-bank/helper"
 	"time"
 )
 
@@ -13,16 +14,18 @@ type Loan struct {
 	Account      account.Account `gorm:"foreignKey:AccountID"`
 	Amount       float64         `gorm:"type:decimal(15,2);not null"`
 	InterestRate float64         `gorm:"type:decimal(5,2);not null"`
-	Term         int             `gorm:"not null"`
+	Term         uint            `gorm:"not null"`
 	Description  string          `gorm:"type:varchar(255)"`
 	GrossIncomes []grossIncome.GrossIncome
 	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
-func GenerateLoan(db *gorm.DB, accountId uint, amount float64, interestRate float64, term int, description string) (Loan, error) {
-
-	loan := Loan{AccountID: accountId, Amount: amount, InterestRate: interestRate, Term: term, Description: description + string(term)}
+func GenerateLoan(db *gorm.DB, accountId uint, amount string, interestRate string, term string, description string) (Loan, error) {
+	termInt, _ := helper.ToUint(term)
+	amountFloat, _ := helper.ToFloat(amount)
+	interestRateFloat, _ := helper.ToFloat(amount)
+	loan := Loan{AccountID: accountId, Amount: amountFloat, InterestRate: interestRateFloat, Term: termInt, Description: description + term}
 
 	result := db.Create(&loan)
 	if result.Error != nil {

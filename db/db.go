@@ -18,6 +18,7 @@ import (
 var db *gorm.DB
 
 func Connect() {
+
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Erro ao carregar arquivo .env: %v", err)
 	}
@@ -34,6 +35,7 @@ func Connect() {
 
 	var err error
 	db, err = gorm.Open(dialect, dbURI)
+
 	if err != nil {
 		log.Fatalf("Erro ao conectar com o banco de dados: %v", err)
 	}

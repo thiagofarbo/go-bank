@@ -1,15 +1,18 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"go-bank/account"
-	"go-bank/client"
+	"github.com/gorilla/mux"
+	account2 "go-bank/account"
+	client2 "go-bank/client"
 	"go-bank/db"
 	"go-bank/grossIncome"
 	"go-bank/helper"
 	"go-bank/loan"
-	"go-bank/user"
-	"os"
+	user2 "go-bank/user"
+	"net/http"
 	"strconv"
 )
 
@@ -22,67 +25,329 @@ const (
 	Suspended = "suspended"
 )
 
-func main() {
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+
 	db.Connect()
 
-	action := os.Args[1]
-	fmt.Println("Action:", action)
+	var user user2.User
 
-	if action == "transfer" {
-		account.Transfer(db.GetDB(), 10, account.Account{Branch: "5255", Number: "554601"}, account.Account{Branch: "2236", Number: "568387"})
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	if action == "create-user" {
-		userId := helper.GenerateId()
-		newUser := user.User{Username: strconv.Itoa(int(userId)) + "username", Password: "1234", Email: "user-" + strconv.Itoa(int(userId)) + "@gmail.com"}
-		newUser, _ = user.CreateUser(db.GetDB(), newUser)
-		fmt.Println("User " + newUser.Username + " has been created successfully!")
+	hashPassword, err := helper.EncryptPassword(user.Password)
+	if err != nil {
+		return
 	}
 
-	if action == "create-client" {
-		userId := helper.GenerateId()
-		newUser := client.Client{Name: strconv.Itoa(int(userId)) + "username", Age: 36, Email: "user-" + strconv.Itoa(int(userId)) + "@gmail.com"}
-		newUser, _ = client.CreateUser(db.GetDB(), newUser)
-		fmt.Println("User " + newUser.Name + " has been created successfully!")
+	newUser := user2.User{Username: user.Username, Password: string(hashPassword), Email: user.Email}
+	newUser, _ = user2.Create(db.GetDB(), newUser)
 
-		accountNumber := helper.GenerateAccountNumber()
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(&user)
 
-		fmt.Println("Creating account for user: " + newUser.Name)
-		branch := helper.GenerateAccountBranch()
-		newAccount := account.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: Active}
+	defer db.GetDB().Close()
+	return
+}
 
-		createAccount, err := account.CreateAccount(db.GetDB(), newAccount, newUser)
-		if err != nil {
-			fmt.Printf("Error to create an account: %v\n", err)
-			return
-		}
-		fmt.Println("Account has been created successfully for user: " + newUser.Name)
+func CreateClient(w http.ResponseWriter, r *http.Request) (*client2.Client, error) {
+	db.Connect()
 
-		income := grossIncome.GrossIncome{AccountID: createAccount.ID, Account: createAccount, Amount: 25000}
-		grossIncome.Create(db.GetDB(), income)
+	var client client2.Client
 
-	} else if action == "deposit" {
-
-		deposit, _ := account.Deposit(db.GetDB(), "1928", "923265", 100.00)
-		fmt.Println("Deposit made successfully for account: " + deposit.Number)
-
-	} else if action == "withdraw" {
-		withdraw, _ := account.Withdraw(db.GetDB(), "1928", "923265", 5.00)
-		if withdraw.ID == 0 {
-			fmt.Println("Error to withdraw balance" + withdraw.Number)
-		} else {
-			fmt.Println("Withdraw made successfully for account: " + withdraw.Number)
-		}
-	} else if action == "update" {
-		statusAccount, _ := account.UpdateStatusAccount(db.GetDB(), "6662", "260456", Closed)
-		if statusAccount.ID != 0 {
-			fmt.Printf("Account updated successfully : %v\n", statusAccount)
-		}
-	} else if action == "statement" {
-		account.BankStatement(db.GetDB(), "2024-07-01 00:00:00", "2024-07-08 23:59:59")
-	} else if action == "loan" {
-		term := 15
-		//(db *gorm.DB, accountId uint, amount float64, interestRate float64, term int)
-		loan.GenerateLoan(db.GetDB(), 2, 10.000, 1, term, "Got loan with a term of "+strconv.Itoa(term)+"%")
+	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return &client2.Client{}, errors.New("client not found!")
 	}
+
+	newClient := client2.Client{Name: client.Name, Age: client.Age, Email: client.Email}
+	newClient, _ = client2.Create(db.GetDB(), newClient)
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(&newClient)
+
+	defer db.GetDB().Close()
+	return &newClient, nil
+
+}
+
+func CreateAccount(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var account account2.Account
+
+	accountNumber := helper.GenerateAccountNumber()
+
+	branch := helper.GenerateAccountBranch()
+
+	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var client client2.Client
+	db.GetDB().First(&client, account.ClientID)
+	if client.ID == 0 {
+		json.NewEncoder(w).Encode("client not found!")
+		return
+	}
+	newAccount := account2.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: Active}
+	newAccount, _ = account2.CreateAccount(db.GetDB(), newAccount, client.ID)
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(&newAccount)
+
+	defer db.GetDB().Close()
+	return
+}
+
+func AddGrossIncome(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var accountGrossIncome grossIncome.GrossIncome
+	var account account2.Account
+
+	if err := json.NewDecoder(r.Body).Decode(&accountGrossIncome); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	db.GetDB().First(&account, accountGrossIncome.AccountID)
+	if account.ID == 0 {
+		json.NewEncoder(w).Encode("account not found!")
+		return
+	}
+
+	income := grossIncome.GrossIncome{AccountID: account.ID, Account: account, Amount: accountGrossIncome.Amount}
+	income, err := grossIncome.Create(db.GetDB(), income)
+	if err != nil {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(&income)
+
+	defer db.GetDB().Close()
+
+}
+
+func GetClientById(w http.ResponseWriter, r *http.Request) (*client2.Client, error) {
+
+	db.Connect()
+
+	var client client2.Client
+	id := mux.Vars(r)["id"]
+	db.GetDB().First(&client, id)
+	if client.ID == 0 {
+		json.NewEncoder(w).Encode("client not found!")
+		return &client2.Client{}, errors.New("client not found!")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(&client)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return &client2.Client{}, err
+	}
+	return &client, err
+}
+
+func Deposit(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var account account2.Account
+
+	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	deposit, _ := account2.Deposit(db.GetDB(), account.Branch, account.Number, account.Balance)
+	fmt.Println("Deposit made successfully for account: " + deposit.Number)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&deposit)
+
+	defer db.GetDB().Close()
+}
+
+func Withdraw(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var account account2.Account
+
+	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	withdraw, _ := account2.Withdraw(db.GetDB(), account.Branch, account.Number, account.Balance)
+	fmt.Println("Withdraw made successfully for account: " + withdraw.Number)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&withdraw)
+
+	defer db.GetDB().Close()
+}
+
+type RequestBody struct {
+	Accounts []account2.Account `json:"accounts"`
+}
+
+func Transfer(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var reqBody RequestBody
+
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if len(reqBody.Accounts) > 0 {
+
+		accountFrom := reqBody.Accounts[0]
+		accountTo := reqBody.Accounts[1]
+		fmt.Printf("Starting transfer from account: Number=%s to account Number=%s\n", accountFrom.Number, accountTo.Number)
+		account2.Transfer(db.GetDB(), accountFrom.Balance, account2.Account{Branch: accountFrom.Branch, Number: accountFrom.Number}, account2.Account{Branch: accountTo.Branch, Number: accountTo.Number})
+	} else {
+		http.Error(w, "No accounts provided", http.StatusBadRequest)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
+
+	defer db.GetDB().Close()
+}
+
+func GetStatement(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+	accountId := mux.Vars(r)["id"]
+
+	u, err := strconv.ParseUint(accountId, 10, 32)
+	if err != nil {
+		fmt.Println("Erro ao converter string para uint:", err)
+		return
+	}
+
+	transactions, err := account2.BankStatement(db.GetDB(), uint(u), start, end)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if transactions == nil || len(*transactions) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err := json.NewEncoder(w).Encode(transactions); err != nil {
+		http.Error(w, "Failed to encode transactions to JSON", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+	defer db.GetDB().Close()
+}
+
+func GenerateLoan(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	amount := r.URL.Query().Get("amount")
+	interestRate := r.URL.Query().Get("interestRate")
+	term := r.URL.Query().Get("term")
+	description := r.URL.Query().Get("description")
+	accountId := mux.Vars(r)["id"]
+
+	u, err := strconv.ParseUint(accountId, 10, 32)
+	if err != nil {
+		fmt.Println("Error to convert string to uint:", err)
+		return
+	}
+
+	loan, err := loan.GenerateLoan(db.GetDB(), uint(u), amount, interestRate, term, description+term+"%")
+	if err != nil {
+		http.Error(w, "Failed to generate loan", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(&loan); err != nil {
+		http.Error(w, "Failed to encode loan to JSON", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+	defer db.GetDB().Close()
+}
+
+func UpdateStatusAccount(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var account account2.Account
+
+	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	statusAccount, _ := account2.UpdateStatusAccount(db.GetDB(), account.Branch, account.Number, Closed)
+	if statusAccount.ID != 0 {
+		fmt.Printf("Account updated successfully : %v\n", statusAccount)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&statusAccount)
+
+	defer db.GetDB().Close()
+}
+
+func GetHello(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("Thiago")
+	return
+}
+
+func main() {
+
+	router := mux.NewRouter()
+
+	router.HandleFunc("/users", CreateUser).Methods("POST")
+	router.HandleFunc("/clients", func(w http.ResponseWriter, r *http.Request) {
+		client, err := CreateClient(w, r)
+		if err == nil {
+			json.NewEncoder(w).Encode(client)
+		}
+	}).Methods("POST")
+	router.HandleFunc("/clients/{id}", func(w http.ResponseWriter, r *http.Request) {
+		user, err := GetClientById(w, r)
+		if err == nil {
+			json.NewEncoder(w).Encode(user)
+		}
+	}).Methods("GET")
+
+	router.HandleFunc("/accounts", CreateAccount).Methods("POST")
+	router.HandleFunc("/accounts/deposit", Deposit).Methods("POST")
+	router.HandleFunc("/accounts/withdraw", Withdraw).Methods("POST")
+	router.HandleFunc("/accounts/transfer", Transfer).Methods("POST")
+	router.HandleFunc("/accounts/{id}/statement", GetStatement).Methods("GET")
+	router.HandleFunc("/accounts/{id}/loan", GenerateLoan).Methods("POST")
+	router.HandleFunc("/accounts/update/status", UpdateStatusAccount).Methods("PUT")
+	router.HandleFunc("/clients/gross-incomes", AddGrossIncome).Methods("POST")
+	router.HandleFunc("/hello", GetHello).Methods("GET")
+
+	http.ListenAndServe(":8080", router)
+
 }

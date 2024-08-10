@@ -14,12 +14,12 @@ func GenerateId() uint {
 }
 
 func GenerateAccountNumber() string {
-	var max = 6
+	var m = 6
 	var table = [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-	b := make([]byte, max)
-	number, err := io.ReadAtLeast(rand.Reader, b, max)
+	b := make([]byte, m)
+	number, err := io.ReadAtLeast(rand.Reader, b, m)
 
-	if number != max {
+	if number != m {
 		panic(err)
 	}
 
@@ -30,12 +30,12 @@ func GenerateAccountNumber() string {
 }
 
 func GenerateAccountBranch() string {
-	var max = 4
+	var m = 4
 	var table = [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-	b := make([]byte, max)
-	branch, err := io.ReadAtLeast(rand.Reader, b, max)
+	b := make([]byte, m)
+	branch, err := io.ReadAtLeast(rand.Reader, b, m)
 
-	if branch != max {
+	if branch != m {
 		panic(err)
 	}
 	for i := 0; i < len(b); i++ {
