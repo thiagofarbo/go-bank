@@ -12,6 +12,7 @@ import (
 	"go-bank/grossIncome"
 	"go-bank/helper"
 	"go-bank/loan"
+	"go-bank/login"
 	user2 "go-bank/user"
 	"log"
 	"net/http"
@@ -20,6 +21,37 @@ import (
 
 type RequestBody struct {
 	Accounts []account2.Account `json:"accounts"`
+}
+
+func LoginUser(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	// Decodificando a requisição JSON
+	var loginRequest login.LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&loginRequest)
+	if err != nil {
+		http.Error(w, "Erro ao decodificar a requisição", http.StatusBadRequest)
+		return
+	}
+	var user *user2.User
+	user, err = login.Login(db.GetDB(), loginRequest.Username, loginRequest.Password)
+	if user.ID == 0 || err != nil {
+		http.Error(w, "User not found:", http.StatusBadRequest)
+		return
+	}
+
+	// Gerando um token de autenticação (substitua com sua lógica de geração de token)
+	token := "exemploDeToken" // Aqui você pode gerar um token JWT, por exemplo
+
+	// Respondendo com sucesso
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(login.LoginResponse{
+		Message: "Login realizado com sucesso",
+		Token:   token,
+	})
+	db.GetDB().Close()
+	return
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -48,14 +80,14 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func CreateClient(w http.ResponseWriter, r *http.Request) (*client2.Client, error) {
+func CreateClient(w http.ResponseWriter, r *http.Request) {
 	db.Connect()
 
 	var client client2.Client
 
 	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return &client2.Client{}, errors.New("client not found!")
+		return
 	}
 
 	newClient := client2.Client{Name: client.Name, Age: client.Age, Email: client.Email}
@@ -65,7 +97,7 @@ func CreateClient(w http.ResponseWriter, r *http.Request) (*client2.Client, erro
 	json.NewEncoder(w).Encode(&newClient)
 
 	defer db.GetDB().Close()
-	return &newClient, nil
+	return
 
 }
 
@@ -348,13 +380,10 @@ func main() {
 
 	router := mux.NewRouter()
 
+	router.HandleFunc("/users/login", LoginUser).Methods("POST")
 	router.HandleFunc("/users", CreateUser).Methods("POST")
-	router.HandleFunc("/clients", func(w http.ResponseWriter, r *http.Request) {
-		client, err := CreateClient(w, r)
-		if err == nil {
-			json.NewEncoder(w).Encode(client)
-		}
-	}).Methods("POST")
+	router.HandleFunc("/clients", CreateClient).Methods("POST")
+
 	router.HandleFunc("/clients/{id}", func(w http.ResponseWriter, r *http.Request) {
 		user, err := GetClientById(w, r)
 		if err == nil {
