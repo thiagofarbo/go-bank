@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	account2 "go-bank/account"
 	client2 "go-bank/client"
@@ -371,6 +372,11 @@ func main() {
 	router.HandleFunc("/clients/gross-incomes", AddGrossIncome).Methods("POST")
 	router.HandleFunc("/hello", GetHello).Methods("GET")
 
-	http.ListenAndServe(":8080", router)
+	// Configuração do CORS
+	allowedHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	allowedOrigins := handlers.AllowedOrigins([]string{"*"})
 
+	// Iniciar o servidor com as configurações de CORS
+	http.ListenAndServe(":8080", handlers.CORS(allowedHeaders, allowedMethods, allowedOrigins)(router))
 }
