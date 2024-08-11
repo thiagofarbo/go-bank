@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"time"
 )
@@ -21,4 +22,11 @@ func GetClientById(db *gorm.DB, id uint) (Client, error) {
 		return Client{}, nil
 	}
 	return user, nil
+}
+
+func ListClient(db *gorm.DB) (*[]Client, error) {
+	var clients []Client
+	db.Order("age desc").Order("name").Find(&clients)
+	fmt.Printf("Clients not found: %+v\n", clients)
+	return &clients, nil
 }

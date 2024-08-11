@@ -376,13 +376,34 @@ func GetHello(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func ListClient(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var clients *[]client2.Client
+	clients, _ = client2.ListClient(db.GetDB())
+
+	w.Header().Set("Content-Type", "application/json")
+	if clients == nil || len(*clients) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err := json.NewEncoder(w).Encode(clients); err != nil {
+		http.Error(w, "Failed to encode transactions to JSON", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+	defer db.GetDB().Close()
+}
+
 func main() {
 
 	router := mux.NewRouter()
 
 	router.HandleFunc("/users/login", LoginUser).Methods("POST")
 	router.HandleFunc("/users", CreateUser).Methods("POST")
+
 	router.HandleFunc("/clients", CreateClient).Methods("POST")
+	router.HandleFunc("/clients", ListClient).Methods("GET")
 
 	router.HandleFunc("/clients/{id}", func(w http.ResponseWriter, r *http.Request) {
 		user, err := GetClientById(w, r)
