@@ -107,13 +107,23 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	var account account2.Account
 
-	accountNumber := helper.GenerateAccountNumber()
-
-	branch := helper.GenerateAccountBranch()
-
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	var branch string
+	if account.Branch != "" {
+		branch = account.Branch
+	} else {
+		branch = helper.GenerateAccountBranch()
+	}
+
+	var accountNumber string
+	if account.Number != "" {
+		accountNumber = account.Number
+	} else {
+		accountNumber = helper.GenerateAccountNumber()
 	}
 
 	var client client2.Client
@@ -271,7 +281,7 @@ func Transfer(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No accounts provided", http.StatusBadRequest)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 
 	defer db.GetDB().Close()
 }
@@ -395,6 +405,25 @@ func ListClient(w http.ResponseWriter, r *http.Request) {
 	defer db.GetDB().Close()
 }
 
+func ListAccount(w http.ResponseWriter, r *http.Request) {
+
+	db.Connect()
+
+	var accounts *[]account2.Account
+	accounts, _ = account2.ListAccount(db.GetDB())
+
+	w.Header().Set("Content-Type", "application/json")
+	if accounts == nil || len(*accounts) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err := json.NewEncoder(w).Encode(accounts); err != nil {
+		http.Error(w, "Failed to encode transactions to JSON", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+	defer db.GetDB().Close()
+}
+
 func main() {
 
 	router := mux.NewRouter()
@@ -413,6 +442,7 @@ func main() {
 	}).Methods("GET")
 
 	router.HandleFunc("/accounts", CreateAccount).Methods("POST")
+	router.HandleFunc("/accounts", ListAccount).Methods("GET")
 	router.HandleFunc("/accounts/deposit", Deposit).Methods("POST")
 	router.HandleFunc("/accounts/withdraw", Withdraw).Methods("POST")
 	router.HandleFunc("/accounts/transfer", Transfer).Methods("POST")

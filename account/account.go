@@ -34,6 +34,13 @@ type Transaction struct {
 	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
+func ListAccount(db *gorm.DB) (*[]Account, error) {
+	var accounts []Account
+	db.Order("branch desc").Order("number").Find(&accounts)
+	fmt.Printf("Account not found: %+v\n", accounts)
+	return &accounts, nil
+}
+
 func CreateAccount(db *gorm.DB, account Account, clientId uint) (Account, error) {
 	account.ClientID = clientId
 	result := db.Create(&account)
