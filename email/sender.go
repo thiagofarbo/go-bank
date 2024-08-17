@@ -1,24 +1,46 @@
 package email
 
-import "github.com/go-mail/mail"
+import (
+	account2 "go-bank/account"
+	"go-bank/helper"
+	"gopkg.in/gomail.v2"
+	"log"
+	"os"
+	"strings"
+)
 
-func Send() {
-	m := mail.NewMessage()
-	m.SetHeader("From", "thiagoemidio37@yahoo.com.br")
+func SendEmail(accountFrom account2.Account, accountTo account2.Account) {
 
-	m.SetHeader("To", "thiagoemidio37@yahoo.com.br")
+	host := "sandbox.smtp.mailtrap.io"
+	port := 587
+	user := "62a153a9cec90b"
+	password := "c9fe45faea3489"
 
-	//m.SetAddressHeader("Cc", "oliver.doe@example.com", "Oliver")
-
-	m.SetHeader("Subject", "Hello!")
-
-	m.SetBody("text/html", "Hello <b>Kate</b> and <i>Noah</i>!")
-
-	m.Attach("lolcat.jpg")
-
-	d := mail.NewDialer("smtp.mail.yahoo.com", 465, "thiagoemidio37@yahoo.com.br", "Tgo4471@!")
-
-	if err := d.DialAndSend(m); err != nil {
-		panic(err)
+	// Ler o conteúdo do arquivo HTML
+	htmlContent, err := os.ReadFile("email_template.html")
+	if err != nil {
+		log.Fatalf("Erro ao ler o arquivo HTML: %v", err)
 	}
+
+	// Converter o conteúdo para string
+	htmlStr := string(htmlContent)
+
+	htmlStr = strings.Replace(htmlStr, "{{ContaRemetente}}", accountFrom.Number, -1)
+	htmlStr = strings.Replace(htmlStr, "{{ContaDestinatario}}", accountTo.Number, -1)
+	htmlStr = strings.Replace(htmlStr, "{{Valor}}", helper.ToString(accountFrom.Balance), -1)
+
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", "thiagofarbo@gmail.com")
+	msg.SetHeader("To", "webworkportal@gmail.com")
+	msg.SetHeader("Subject", "test message")
+	msg.SetBody("text/html", htmlStr)
+
+	dialer := gomail.NewDialer(host, port, user, password)
+
+	if err := dialer.DialAndSend(msg); err != nil {
+		log.Fatalf("Erro ao enviar o e-mail: %v", err)
+	} else {
+		log.Println("E-mail enviado com sucesso!")
+	}
+
 }

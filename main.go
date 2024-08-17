@@ -9,6 +9,7 @@ import (
 	account2 "go-bank/account"
 	client2 "go-bank/client"
 	"go-bank/db"
+	"go-bank/email"
 	"go-bank/grossIncome"
 	"go-bank/helper"
 	"go-bank/loan"
@@ -270,16 +271,18 @@ func Transfer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	var accountFrom account2.Account
+	var accountTo account2.Account
 	if len(reqBody.Accounts) > 0 {
 
-		accountFrom := reqBody.Accounts[0]
-		accountTo := reqBody.Accounts[1]
+		accountFrom = reqBody.Accounts[0]
+		accountTo = reqBody.Accounts[1]
 		fmt.Printf("Starting transfer from account: Number=%s to account Number=%s\n", accountFrom.Number, accountTo.Number)
-		account2.Transfer(db.GetDB(), accountFrom.Balance, account2.Account{Branch: accountFrom.Branch, Number: accountFrom.Number}, account2.Account{Branch: accountTo.Branch, Number: accountTo.Number})
+		account2.Transfer(db.GetDB(), accountFrom.Balance, accountFrom, accountTo)
 	} else {
 		http.Error(w, "No accounts provided", http.StatusBadRequest)
 	}
+	email.SendEmail(accountFrom, accountTo)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 

@@ -34,3 +34,8 @@ func ToFloat(value string) (float64, error) {
 	}
 	return floatValue, nil
 }
+
+func ToString(value float64) string {
+	strValue := fmt.Sprintf("%.2f", value)
+	return strValue
+}
