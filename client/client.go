@@ -15,14 +15,14 @@ type Client struct {
 	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }
 
-func GetClientById(db *gorm.DB, id uint) (Client, error) {
-	var user Client
-	result := db.First(&user, id)
-	if result.Error != nil {
-		return Client{}, nil
-	}
-	return user, nil
-}
+//func GetClientById(db *gorm.DB, id uint) (Client, error) {
+//	var user Client
+//	result := db.First(&user, id)
+//	if result.Error != nil {
+//		return Client{}, nil
+//	}
+//	return user, nil
+//}
 
 func ListClient(db *gorm.DB) (*[]Client, error) {
 	var clients []Client
