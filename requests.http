@@ -6,9 +6,9 @@ POST http://localhost:8080/users
 Content-Type: application/json
 
 {
-  "username": "user3",
+  "username": "user4",
   "password": "0001",
-  "email":    "user3@example.com"
+  "email":    "user4@example.com"
 }
 
 ### Create clients

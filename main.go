@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go-bank/src/controller/routes"
+	"go-bank/src/routes"
 )
 
 func main() {

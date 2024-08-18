@@ -3,23 +3,24 @@ package controller
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	client2 "go-bank/client"
-	"go-bank/db"
+	"go-bank/src/db"
+	"go-bank/src/model"
+	"go-bank/src/repository"
 	"net/http"
 )
 
 func CreateClient(w http.ResponseWriter, r *http.Request) {
 	db.Connect()
 
-	var client client2.Client
+	var client model.Client
 
 	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	newClient := client2.Client{Name: client.Name, Age: client.Age, Email: client.Email}
-	newClient, _ = client2.Create(db.GetDB(), newClient)
+	newClient := model.Client{Name: client.Name, Age: client.Age, Email: client.Email}
+	newClient, _ = repository.CreateClient(db.GetDB(), newClient)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&newClient)
@@ -33,8 +34,8 @@ func ListClient(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var clients *[]client2.Client
-	clients, _ = client2.ListClient(db.GetDB())
+	var clients *[]model.Client
+	clients, _ = repository.ListClient(db.GetDB())
 
 	w.Header().Set("Content-Type", "application/json")
 	if clients == nil || len(*clients) == 0 {
@@ -52,7 +53,7 @@ func GetClientById(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var client client2.Client
+	var client model.Client
 	id := mux.Vars(r)["id"]
 	db.GetDB().First(&client, id)
 	if client.ID == 0 {

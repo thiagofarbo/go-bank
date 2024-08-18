@@ -4,27 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	account2 "go-bank/account"
-	client2 "go-bank/client"
-	"go-bank/db"
-	"go-bank/email"
-	"go-bank/grossIncome"
-	"go-bank/helper"
-	"go-bank/loan"
+	"go-bank/src/db"
+	"go-bank/src/helper"
+	client2 "go-bank/src/model"
 	"log"
 	"net/http"
 	"strconv"
 )
 
 type RequestBody struct {
-	Accounts []account2.Account `json:"accounts"`
+	Accounts []client2.Account `json:"accounts"`
 }
 
 func CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var account account2.Account
+	var account client2.Account
 
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -51,8 +47,8 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode("client not found!")
 		return
 	}
-	newAccount := account2.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: account2.Active}
-	newAccount, _ = account2.CreateAccount(db.GetDB(), newAccount, client.ID)
+	newAccount := client2.Account{Branch: branch, Number: accountNumber, Balance: 0, Status: client2.Active}
+	newAccount, _ = client2.CreateAccount(db.GetDB(), newAccount, client.ID)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&newAccount)
@@ -65,8 +61,8 @@ func ListAccount(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var accounts *[]account2.Account
-	accounts, _ = account2.ListAccount(db.GetDB())
+	var accounts *[]client2.Account
+	accounts, _ = client2.ListAccount(db.GetDB())
 
 	w.Header().Set("Content-Type", "application/json")
 	if accounts == nil || len(*accounts) == 0 {
@@ -84,8 +80,8 @@ func AddGrossIncome(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var accountGrossIncome grossIncome.GrossIncome
-	var account account2.Account
+	var accountGrossIncome client2.GrossIncome
+	var account client2.Account
 
 	if err := json.NewDecoder(r.Body).Decode(&accountGrossIncome); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -98,8 +94,8 @@ func AddGrossIncome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	income := grossIncome.GrossIncome{AccountID: account.ID, Account: account, Amount: accountGrossIncome.Amount}
-	income, err := grossIncome.Create(db.GetDB(), income)
+	income := client2.GrossIncome{AccountID: account.ID, Account: account, Amount: accountGrossIncome.Amount}
+	income, err := client2.Create(db.GetDB(), income)
 	if err != nil {
 		return
 	}
@@ -116,20 +112,20 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var account account2.Account
+	var account client2.Account
 
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	isActive, err := account2.IsAccountActive(db.GetDB(), account)
+	isActive, err := client2.IsAccountActive(db.GetDB(), account)
 	if !isActive {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Fatalf("Error: account is not active for deposit: %v", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	deposit, _ := account2.Deposit(db.GetDB(), account.Branch, account.Number, account.Balance)
+	deposit, _ := client2.Deposit(db.GetDB(), account.Branch, account.Number, account.Balance)
 	fmt.Println("Deposit made successfully for account: " + deposit.Number)
 
 	w.WriteHeader(http.StatusOK)
@@ -142,14 +138,14 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var account account2.Account
+	var account client2.Account
 
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	isActive, err := account2.IsAccountActive(db.GetDB(), account)
+	isActive, err := client2.IsAccountActive(db.GetDB(), account)
 	if !isActive {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Fatalf("Error: account is not active for withdrawals: %v", err)
@@ -157,7 +153,7 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	withdraw, _ := account2.Withdraw(db.GetDB(), account.Branch, account.Number, account.Balance)
+	withdraw, _ := client2.Withdraw(db.GetDB(), account.Branch, account.Number, account.Balance)
 	fmt.Println("Withdraw made successfully for account: " + withdraw.Number)
 
 	w.WriteHeader(http.StatusOK)
@@ -179,25 +175,25 @@ func Transfer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, value := range reqBody.Accounts {
-		isActive, err := account2.IsAccountActive(db.GetDB(), value)
+		isActive, err := client2.IsAccountActive(db.GetDB(), value)
 		if !isActive {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			log.Fatalf("Error: account is not active for transfers: %v", err)
 			return
 		}
 	}
-	var accountFrom account2.Account
-	var accountTo account2.Account
+	var accountFrom client2.Account
+	var accountTo client2.Account
 	if len(reqBody.Accounts) > 0 {
 
 		accountFrom = reqBody.Accounts[0]
 		accountTo = reqBody.Accounts[1]
 		fmt.Printf("Starting transfer from account: Number=%s to account Number=%s\n", accountFrom.Number, accountTo.Number)
-		account2.Transfer(db.GetDB(), accountFrom.Balance, accountFrom, accountTo)
+		client2.Transfer(db.GetDB(), accountFrom.Balance, accountFrom, accountTo)
 	} else {
 		http.Error(w, "No accounts provided", http.StatusBadRequest)
 	}
-	email.SendEmail(accountFrom, accountTo)
+	client2.SendEmail(accountFrom, accountTo)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
@@ -218,7 +214,7 @@ func GetStatement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactions, err := account2.BankStatement(db.GetDB(), uint(u), start, end)
+	transactions, err := client2.BankStatement(db.GetDB(), uint(u), start, end)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -252,7 +248,7 @@ func GenerateLoan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loan, err := loan.GenerateLoan(db.GetDB(), uint(u), amount, interestRate, term, description+term+"%")
+	loan, err := client2.GenerateLoan(db.GetDB(), uint(u), amount, interestRate, term, description+term+"%")
 	if err != nil {
 		http.Error(w, "Failed to generate loan", http.StatusInternalServerError)
 		return
@@ -271,21 +267,21 @@ func UpdateStatusAccount(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
 
-	var account account2.Account
+	var account client2.Account
 
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	isActive, err := account2.IsAccountActive(db.GetDB(), account)
+	isActive, err := client2.IsAccountActive(db.GetDB(), account)
 	if !isActive {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Fatalf("Error: account is not active for updates: %v", err)
 		return
 	}
 
-	statusAccount, _ := account2.UpdateStatusAccount(db.GetDB(), account.Branch, account.Number, account2.Closed)
+	statusAccount, _ := client2.UpdateStatusAccount(db.GetDB(), account.Branch, account.Number, client2.Closed)
 	if statusAccount.ID != 0 {
 		fmt.Printf("Account updated successfully : %v\n", statusAccount)
 	}
