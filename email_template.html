@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificação de Transferência</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #007BFF;
+            color: #ffffff;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .content p {
+            margin: 15px 0;
+            font-size: 16px;
+            color: #333333;
+        }
+        .account-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .account-info h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #007BFF;
+        }
+        .account-info p {
+            margin: 5px 0;
+            font-size: 16px;
+            color: #555555;
+        }
+        .footer {
+            text-align: center;
+            padding: 10px 0;
+            color: #888888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <div class="header">
+        <h1>Transferência Realizada</h1>
+    </div>
+    <div class="content">
+        <p>Olá,</p>
+        <p>Informamos que uma transferência de valores foi realizada com sucesso entre as contas.</p>
+        <div class="account-info">
+            <h3>Detalhes da Transferência</h3>
+            <p><strong>Conta Remetente:</strong> {{ContaRemetente}}</p>
+            <p><strong>Conta Destinatária:</strong> {{ContaDestinatario}}</p>
+            <p><strong>Valor Transferido:</strong> R$ {{Valor}}</p>
+        </div>
+        <p>Se você não reconhece essa transação, entre em contato conosco imediatamente.</p>
+    </div>
+    <div class="footer">
+        <p>Este é um e-mail automático. Por favor, não responda.</p>
+        <p>&copy; 2024 Seu Banco. Todos os direitos reservados.</p>
+    </div>
+</div>
+</body>
+</html>

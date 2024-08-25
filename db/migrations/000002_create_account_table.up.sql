@@ -1,9 +1,0 @@
-CREATE TABLE account (
-      id SERIAL PRIMARY KEY,
-      user_id INT NOT NULL,
-      number VARCHAR(20) UNIQUE NOT NULL,
-      balance NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
