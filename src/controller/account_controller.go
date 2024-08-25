@@ -126,7 +126,7 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	deposit, _ := client2.Deposit(db.GetDB(), account.Branch, account.Number, account.Balance)
-	fmt.Println("Deposit made successfully for account: " + deposit.Number)
+	log.Println("Deposit made successfully for account: " + deposit.Number)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&deposit)
@@ -188,7 +188,7 @@ func Transfer(w http.ResponseWriter, r *http.Request) {
 
 		accountFrom = reqBody.Accounts[0]
 		accountTo = reqBody.Accounts[1]
-		fmt.Printf("Starting transfer from account: Number=%s to account Number=%s\n", accountFrom.Number, accountTo.Number)
+		log.Printf("Starting transfer from account: Number=%s to account Number=%s\n", accountFrom.Number, accountTo.Number)
 		client2.Transfer(db.GetDB(), accountFrom.Balance, accountFrom, accountTo)
 	} else {
 		http.Error(w, "No accounts provided", http.StatusBadRequest)

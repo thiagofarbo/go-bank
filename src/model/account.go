@@ -59,7 +59,7 @@ func Deposit(db *gorm.DB, branch string, accountNumber string, amount float64) (
 
 	db.Where("branch = ? AND number = ?", branch, accountNumber).Find(&account)
 	if account.ID == 0 {
-		fmt.Printf("Account not found : %v\n", branch)
+		log.Printf("Account not found : %v\n", branch)
 		return &account, nil
 	}
 	account.Balance += amount

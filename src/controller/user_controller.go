@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"go-bank/src/db"
 	"go-bank/src/helper"
@@ -9,44 +10,6 @@ import (
 	"go-bank/src/repository"
 	"net/http"
 )
-
-type LoginResponse struct {
-	Message string `json:"message"`
-	Token   string `json:"token,omitempty"` // token omitido se não existir
-}
-
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-func LoginUser(w http.ResponseWriter, r *http.Request) {
-
-	db.Connect()
-
-	var loginRequest LoginRequest
-	err := json.NewDecoder(r.Body).Decode(&loginRequest)
-	if err != nil {
-		http.Error(w, "Erro ao decodificar a requisição", http.StatusBadRequest)
-		return
-	}
-	var user *model.User
-	user, err = repository.Login(db.GetDB(), loginRequest.Username, loginRequest.Password)
-	if user.ID == 0 || err != nil {
-		http.Error(w, "User not found:", http.StatusBadRequest)
-		return
-	}
-
-	token := "token"
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(LoginResponse{
-		Message: "Login realizado com sucesso",
-		Token:   token,
-	})
-	db.GetDB().Close()
-	return
-}
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 
@@ -77,6 +40,9 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 func GetUserById(w http.ResponseWriter, r *http.Request) {
 
 	db.Connect()
+
+	slice := []int{1, 2, 3}
+	fmt.Println(slice)
 
 	var user model.User
 	id := mux.Vars(r)["id"]

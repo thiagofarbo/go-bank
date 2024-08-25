@@ -27,7 +27,7 @@ func Connect() {
 	database := os.Getenv("DATABASE")
 
 	dbURI := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s port=%s", host, dbUser, database, password, dbPort)
-	fmt.Println(dbURI)
+	log.Println(dbURI)
 
 	var err error
 	db, err = gorm.Open(dialect, dbURI)
